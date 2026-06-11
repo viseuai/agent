@@ -24,6 +24,11 @@ func EngineProxy(engine *url.URL) http.Handler {
 	return &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(engine)
+			// Defense in depth (the gateway strips these too): no
+			// credentials or browser headers reach the local engine.
+			for _, h := range []string{"Authorization", "Cookie", "Origin", "Referer"} {
+				pr.Out.Header.Del(h)
+			}
 		},
 		FlushInterval: -1,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
